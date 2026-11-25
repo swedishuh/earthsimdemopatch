@@ -27,7 +27,7 @@ else
   exit 1
 fi
 
-# 2. Restore real timers, override demo globals, and hide countdown HUD via pure CSS in modboot.js
+# 2. Restore real timers, override demo globals, unlock DLCs, and hide countdown HUD via pure CSS in modboot.js
 if [ -f "modboot.js" ]; then
   if ! grep -q "__demoCleanCss" modboot.js; then
     cp modboot.js "modboot.js.bak.$(date +%s)"
@@ -39,6 +39,18 @@ window.demoOver = function() { return false; };
 window.demoLeft = function() { return 999999999; };
 window.GAME_DEMO = null;
 (function() {
+  const unlockDlc = () => {
+    if (typeof DLC !== "undefined" && typeof DLC_APPS !== "undefined") {
+      DLC.test = DLC.test || {};
+      for (const k of Object.keys(DLC_APPS)) DLC.test[k] = true;
+      if (typeof dlcRefresh === "function") dlcRefresh();
+      return true;
+    }
+    return false;
+  };
+  if (!unlockDlc()) {
+    const t = setInterval(() => { if (unlockDlc()) clearInterval(t); }, 100);
+  }
   if (document.getElementById('__demoCleanCss')) return;
   const st = document.createElement('style');
   st.id = '__demoCleanCss';
@@ -49,7 +61,7 @@ JSEOF
     cat /tmp/modboot_head.js modboot.js > /tmp/modboot_new.js
     mv /tmp/modboot_new.js modboot.js
     rm -f /tmp/modboot_head.js
-    echo "[OK] Patched modboot.js (globals + pure CSS hide)"
+    echo "[OK] Patched modboot.js (globals + DLC unlock + pure CSS hide)"
   else
     echo "[SKIP] modboot.js already patched"
   fi
@@ -72,4 +84,4 @@ else
   exit 1
 fi
 
-echo "Done! Countdown HUD, demo timers, and menu patches are disabled."
+echo "Done! Countdown HUD, demo timers, menu patches, and DLC locks are disabled."
