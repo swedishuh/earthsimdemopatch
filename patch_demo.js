@@ -35,7 +35,7 @@ if (!unitsCode.includes('__origSetInterval')) {
   console.log('[SKIP] units.js already patched');
 }
 
-// 2. Restore real timers, override demo globals, and hide countdown HUD via pure CSS in modboot.js
+// 2. Restore real timers, override demo globals, unlock DLCs, and hide countdown HUD via pure CSS in modboot.js
 const modbootPath = path.join(gameDir, 'modboot.js');
 if (!fs.existsSync(modbootPath)) {
   console.error('[ERR] modboot.js not found!');
@@ -52,6 +52,18 @@ if (!modbootCode.includes('__demoCleanCss')) {
     'window.demoLeft = function() { return 999999999; };',
     'window.GAME_DEMO = null;',
     '(function() {',
+    '  const unlockDlc = () => {',
+    '    if (typeof DLC !== "undefined" && typeof DLC_APPS !== "undefined") {',
+    '      DLC.test = DLC.test || {};',
+    '      for (const k of Object.keys(DLC_APPS)) DLC.test[k] = true;',
+    '      if (typeof dlcRefresh === "function") dlcRefresh();',
+    '      return true;',
+    '    }',
+    '    return false;',
+    '  };',
+    '  if (!unlockDlc()) {',
+    '    const t = setInterval(() => { if (unlockDlc()) clearInterval(t); }, 100);',
+    '  }',
     "  if (document.getElementById('__demoCleanCss')) return;",
     "  const st = document.createElement('style');",
     "  st.id = '__demoCleanCss';",
@@ -61,7 +73,7 @@ if (!modbootCode.includes('__demoCleanCss')) {
     ''
   ].join('\n');
   fs.writeFileSync(modbootPath, headSnippet + modbootCode, 'utf8');
-  console.log('[OK] Patched modboot.js (globals + pure CSS hide)');
+  console.log('[OK] Patched modboot.js (globals + DLC unlock + pure CSS hide)');
 } else {
   console.log('[SKIP] modboot.js already patched');
 }
@@ -83,4 +95,4 @@ if (menuRegex.test(menuCode)) {
   console.log('[SKIP] menu.js already patched');
 }
 
-console.log('Done! Countdown HUD, demo timers, and menu patches are disabled.');
+console.log('Done! Countdown HUD, demo timers, menu patches, and DLC locks are disabled.');
